@@ -239,6 +239,29 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0 auto 0 0;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      letter-spacing: 1px;
+      padding: 7px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .refresh-btn:hover {
+      background: rgba(201,168,76,0.2);
+      border-color: var(--gold);
+    }
+    .refresh-btn.spinning .spin-icon { animation: spin 0.7s linear infinite; }
+    .spin-icon { display: inline-block; font-style: normal; }
+
     footer {
       text-align: center; margin-top: 56px;
       font-family: 'Courier New', monospace;
@@ -264,6 +287,9 @@
   <div id="statusBar">
     <div class="status-dot"></div>
     <span id="statusText">Connecting...</span>
+    <button class="refresh-btn" id="refreshBtn" title="Refresh data">
+      <span class="spin-icon" id="spinIcon">↻</span> REFRESH
+    </button>
   </div>
 
   <div id="results">
@@ -395,6 +421,20 @@
     clearBtn.style.display = 'none';
     input.focus();
     render('');
+  });
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  const spinIcon   = document.getElementById('spinIcon');
+
+  refreshBtn.addEventListener('click', () => {
+    refreshBtn.classList.add('spinning');
+    refreshBtn.disabled = true;
+    loadData().finally(() => {
+      setTimeout(() => {
+        refreshBtn.classList.remove('spinning');
+        refreshBtn.disabled = false;
+      }, 600);
+    });
   });
 
   loadData();
