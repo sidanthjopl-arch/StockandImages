@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Uniware Stock Finder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0f1a;
+      --surface: #131929;
+      --card: #1a2236;
+      --border: #263045;
+      --accent: #00e5ff;
+      --accent2: #ff6b35;
+      --text: #e8edf5;
+      --muted: #6b7a99;
+      --success: #00d68f;
+      --warning: #ffaa00;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .logo-tag {
+      display: inline-block;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(0,229,255,0.08);
+      border: 1px solid rgba(0,229,255,0.2);
+      padding: 4px 12px;
+      border-radius: 2px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(28px, 6vw, 52px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #e8edf5 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* Search box */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-size: 18px;
+      pointer-events: none;
+    }
+
+    #searchInput {
+      width: 100%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 16px;
+      padding: 18px 54px 18px 50px;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      letter-spacing: 1px;
+    }
+
+    #searchInput::placeholder { color: var(--muted); }
+    #searchInput:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.1), 0 0 20px rgba(0,229,255,0.05);
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      display: none;
+      line-height: 1;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+    .clear-btn:hover { color: var(--accent2); }
+
+    .search-hint {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 30px;
+      padding-left: 4px;
+    }
+
+    /* Status bar */
+    #statusBar {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Results grid */
+    #results {
+      display: grid;
+      gap: 16px;
+    }
+
+    .sku-group {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      animation: fadeUp 0.3s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .sku-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,229,255,0.03);
+    }
+
+    .sku-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .sku-img-placeholder {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      border: 1px dashed var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .sku-info { flex: 1; min-width: 0; }
+
+    .sku-code {
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+      word-break: break-all;
+    }
+
+    .sku-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .total-stock {
+      font-family: 'Space Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--success);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .total-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-align: right;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* Bin rows */
+    .bin-list { padding: 0 20px; }
+
+    .bin-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(38,48,69,0.5);
+    }
+    .bin-row:last-child { border-bottom: none; }
+
+    .bin-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+    }
+
+    .bin-icon {
+      width: 28px; height: 28px;
+      border-radius: 4px;
+      background: rgba(0,229,255,0.08);
+      border: 1px solid rgba(0,229,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .bin-label { color: var(--text); }
+
+    .bin-stock {
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 4px 14px;
+      border-radius: 4px;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    .stock-high  { background: rgba(0,214,143,0.12); color: var(--success);  }
+    .stock-mid   { background: rgba(255,170,0,0.12);  color: var(--warning);  }
+    .stock-low   { background: rgba(255,107,53,0.12); color: var(--accent2); }
+
+    /* Empty / loading states */
+    .state-box {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .state-box .big { font-size: 40px; margin-bottom: 12px; }
+
+    .loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 60px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(0,229,255,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-tag">INVENTORY SYSTEM</div>
+    <h1>Stock Finder</h1>
+    <p class="subtitle">// live data from Uniware sheet</p>
+  </header>
+
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" id="searchInput" placeholder="Type SKU code... e.g. JOPLCS104-M" autocomplete="off" spellcheck="false"/>
+    <button class="clear-btn" id="clearBtn" title="Clear">✕</button>
+  </div>
+  <p class="search-hint">// partial match supported — shows bin location + stock qty + product image</p>
+
+  <div id="statusBar">
+    <div class="status-dot"></div>
+    <span id="statusText">Connecting to sheet...</span>
+  </div>
+
+  <div id="results">
+    <div class="loader"><div class="spinner"></div> Loading inventory data...</div>
+  </div>
+
+  <footer>Univare Stock Finder &nbsp;·&nbsp; Auto-refreshes every 5 min</footer>
+</div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────────────────
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTo-H0Ua25CjRakkdYCIwpkILmqjawbxBiZWmVdZPdV3yS_xwOw6LnfecYCKD3A7SRvRs9zWWPBhrBP/pub?output=csv&gid=0';
+  const REFRESH_MS = 5 * 60 * 1000;
+
+  // ── STATE ───────────────────────────────────────────────────────────────────
+  let allRows = [];      // { sku, shelf, stock, image }
+  let lastLoaded = null;
+
+  // ── DOM ──────────────────────────────────────────────────────────────────────
+  const input     = document.getElementById('searchInput');
+  const clearBtn  = document.getElementById('clearBtn');
+  const results   = document.getElementById('results');
+  const statusTxt = document.getElementById('statusText');
+
+  // ── CSV PARSER ───────────────────────────────────────────────────────────────
+  function parseCSV(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) return [];
+
+    // Find header row (look for "Sku Code")
+    let headerIdx = 0;
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      if (lines[i].toLowerCase().includes('sku code')) { headerIdx = i; break; }
+    }
+
+    const headers = splitCSVLine(lines[headerIdx]).map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+    const skuCol   = findCol(headers, ['skucode', 'sku']);
+    const shelfCol = findCol(headers, ['shelf', 'bin', 'location']);
+    const stockCol = findCol(headers, ['available', 'atf', 'qty', 'stock']);
+    const imgCol   = findCol(headers, ['imagelink', 'image', 'img', 'link']);
+
+    const rows = [];
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const cols = splitCSVLine(lines[i]);
+      const sku   = (cols[skuCol]   || '').trim();
+      const shelf = (cols[shelfCol] || '').trim();
+      const stock = parseInt((cols[stockCol] || '0').trim()) || 0;
+      const image = (cols[imgCol]   || '').trim();
+      if (sku) rows.push({ sku, shelf, stock, image });
+    }
+    return rows;
+  }
+
+  function findCol(headers, candidates) {
+    for (const c of candidates) {
+      const idx = headers.findIndex(h => h.includes(c));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  }
+
+  function splitCSVLine(line) {
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+      else { cur += ch; }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  // ── LOAD DATA ────────────────────────────────────────────────────────────────
+  async function loadData() {
+    statusTxt.textContent = 'Fetching latest data...';
+    try {
+      const resp = await fetch(CSV_URL + '&t=' + Date.now());
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const text = await resp.text();
+      allRows = parseCSV(text);
+      lastLoaded = new Date();
+      statusTxt.textContent = `${allRows.length} SKU entries loaded · Last synced ${lastLoaded.toLocaleTimeString()}`;
+      render(input.value.trim());
+    } catch (e) {
+      statusTxt.textContent = 'Error loading data: ' + e.message;
+      results.innerHTML = `<div class="state-box"><div class="big">⚠️</div>Could not load sheet.<br>Check CSV URL or network.</div>`;
+    }
+  }
+
+  // ── RENDER ───────────────────────────────────────────────────────────────────
+  function render(query) {
+    if (!allRows.length) return;
+
+    if (!query) {
+      results.innerHTML = `<div class="state-box"><div class="big">🔍</div>Start typing a SKU code above<br>to find bin location &amp; stock</div>`;
+      return;
+    }
+
+    const q = query.toUpperCase();
+    const matched = allRows.filter(r => r.sku.toUpperCase().includes(q));
+
+    if (!matched.length) {
+      results.innerHTML = `<div class="state-box"><div class="big">📭</div>No SKU found matching "<strong>${escHtml(query)}</strong>"<br>Try a shorter search term</div>`;
+      return;
+    }
+
+    // Group by SKU code
+    const grouped = {};
+    for (const row of matched) {
+      if (!grouped[row.sku]) grouped[row.sku] = { sku: row.sku, bins: [], image: '' };
+      grouped[row.sku].bins.push({ shelf: row.shelf, stock: row.stock });
+      if (!grouped[row.sku].image && row.image) grouped[row.sku].image = row.image;
+    }
+
+    const skus = Object.values(grouped);
+    results.innerHTML = skus.map((g, i) => buildCard(g, i)).join('');
+  }
+
+  function buildCard(g, idx) {
+    const total = g.bins.reduce((s, b) => s + b.stock, 0);
+    const delay = idx * 0.05;
+
+    const imgHtml = g.image
+      ? `<img class="sku-img" src="${escHtml(g.image)}" alt="${escHtml(g.sku)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+         <div class="sku-img-placeholder" style="display:none">📦</div>`
+      : `<div class="sku-img-placeholder">📦</div>`;
+
+    const binRows = g.bins.map(b => {
+      const cls = b.stock >= 20 ? 'stock-high' : b.stock >= 5 ? 'stock-mid' : 'stock-low';
+      return `<div class="bin-row">
+        <div class="bin-name">
+          <div class="bin-icon">📍</div>
+          <span class="bin-label">${escHtml(b.shelf) || '—'}</span>
+        </div>
+        <div class="bin-stock ${cls}">${b.stock}</div>
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="sku-group" style="animation-delay:${delay}s">
+      <div class="sku-header">
+        ${imgHtml}
+        <div class="sku-info">
+          <div class="sku-code">${escHtml(g.sku)}</div>
+          <div class="sku-meta">${g.bins.length} bin${g.bins.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div>
+          <div class="total-stock">${total}</div>
+          <div class="total-label">total</div>
+        </div>
+      </div>
+      <div class="bin-list">${binRows}</div>
+    </div>`;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── EVENTS ───────────────────────────────────────────────────────────────────
+  input.addEventListener('input', () => {
+    const v = input.value.trim();
+    clearBtn.style.display = v ? 'block' : 'none';
+    render(v);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    clearBtn.style.display = 'none';
+    input.focus();
+    render('');
+  });
+
+  // ── INIT ─────────────────────────────────────────────────────────────────────
+  loadData();
+  setInterval(loadData, REFRESH_MS);
+</script>
+</body>
+</html>
