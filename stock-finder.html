@@ -360,42 +360,27 @@
       return;
     }
 
-    // Group by SKU — always take latest non-empty image
-    const grouped = {};
-    for (const row of matched) {
-      if (!grouped[row.sku]) grouped[row.sku] = { sku: row.sku, bins: [], image: '' };
-      grouped[row.sku].bins.push({ shelf: row.shelf, stock: row.stock });
-      if (row.image) grouped[row.sku].image = row.image;
-    }
-
-    results.innerHTML = Object.values(grouped).map((g, i) => {
-      const total = g.bins.reduce((s,b) => s + b.stock, 0);
-      const imgSrc = g.image ? g.image.trim() : '';
+    results.innerHTML = matched.map((row, i) => {
+      const imgSrc = row.image ? row.image.trim() : '';
       const imgHtml = imgSrc
-        ? '<img class="sku-img" src="' + esc(imgSrc) + '" alt="' + esc(g.sku) + '" onerror="this.onerror=null;this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+        ? '<img class="sku-img" src="' + esc(imgSrc) + '" alt="' + esc(row.sku) + '" onerror="this.onerror=null;this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
           + '<div class="sku-img-placeholder" style="display:none">🧵</div>'
         : '<div class="sku-img-placeholder">🧵</div>';
 
-      const binRows = g.bins.map(b => {
-        const cls = b.stock >= 20 ? 'stock-high' : b.stock >= 5 ? 'stock-mid' : 'stock-low';
-        return '<div class="bin-row">'
-          + '<div class="bin-icon">📍</div>'
-          + '<span class="bin-name">' + esc(b.shelf || '—') + '</span>'
-          + '<span class="bin-stock ' + cls + '">' + b.stock + '</span>'
-          + '<div class="bin-spacer"></div>'
-          + '</div>';
-      }).join('');
+      const cls = row.stock >= 20 ? 'stock-high' : row.stock >= 5 ? 'stock-mid' : 'stock-low';
 
       return '<div class="sku-group" style="animation-delay:' + (i*0.04) + 's">'
         + '<div class="sku-header">'
         + imgHtml
         + '<div class="sku-info">'
-        + '<div class="sku-code">' + esc(g.sku) + '</div>'
-        + '<div class="sku-meta">' + g.bins.length + ' bin' + (g.bins.length !== 1 ? 's' : '') + '</div>'
+        + '<div class="sku-code">' + esc(row.sku) + '</div>'
+        + '<div class="bin-row" style="margin-top:10px;padding:0;border:none;">'
+        + '<div class="bin-icon">📍</div>'
+        + '<span class="bin-name">' + esc(row.shelf || '—') + '</span>'
+        + '<span class="bin-stock ' + cls + '">' + row.stock + '</span>'
         + '</div>'
-        + '<div class="total-block"><div class="total-stock">' + total + '</div><div class="total-label">Total</div></div>'
         + '</div>'
-        + '<div class="bin-list">' + binRows + '</div>'
+        + '</div>'
         + '</div>';
     }).join('');
   }
