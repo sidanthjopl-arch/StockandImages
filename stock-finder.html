@@ -373,12 +373,28 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Proxy for CORS-blocked images (Nykaa etc.)
+  // Fix & proxy images based on domain
   function proxyImg(url) {
     if (!url) return '';
-    // postimg, imgur, etc. work directly
-    if (url.includes('postimg.cc') || url.includes('imgur.com') || url.includes('githubusercontent.com')) return url;
-    // For Nykaa & other CORS-blocked CDNs, use allorigins proxy
+    url = url.trim();
+
+    // Dropbox: change ?dl=0 to ?raw=1 for direct image
+    if (url.includes('dropbox.com')) {
+      return url.replace('?dl=0', '?raw=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+    }
+
+    // These domains serve images directly — no proxy needed
+    if (
+      url.includes('postimg.cc') ||
+      url.includes('shopify.com') ||
+      url.includes('myntassets.com') ||
+      url.includes('media-amazon.com') ||
+      url.includes('rajnandinifashion.com') ||
+      url.includes('imgur.com') ||
+      url.includes('githubusercontent.com')
+    ) return url;
+
+    // Nykaa and any other CORS-blocked CDN — use weserv proxy
     return 'https://images.weserv.nl/?url=' + encodeURIComponent(url.replace(/^https?:\/\//, ''));
   }
 
