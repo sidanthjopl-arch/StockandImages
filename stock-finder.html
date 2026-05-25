@@ -452,13 +452,14 @@
     for (const row of matched) {
       if (!grouped[row.sku]) grouped[row.sku] = { sku: row.sku, bins: [], image: '' };
       grouped[row.sku].bins.push({ shelf: row.shelf, stock: row.stock });
-      if (!grouped[row.sku].image && row.image) grouped[row.sku].image = row.image;
+      if (row.image) grouped[row.sku].image = row.image; // always take latest non-empty image
     }
 
     results.innerHTML = Object.values(grouped).map((g, i) => {
       const total = g.bins.reduce((s,b) => s + b.stock, 0);
-      const imgHtml = g.image
-        ? '<img class="sku-img" src="' + escHtml(g.image) + '" alt="' + escHtml(g.sku) + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+      const imgSrc = g.image ? g.image.trim() : '';
+      const imgHtml = imgSrc
+        ? '<img class="sku-img" src="' + escHtml(imgSrc) + '" alt="' + escHtml(g.sku) + '" crossorigin="anonymous" onerror="this.onerror=null;this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
           + '<div class="sku-img-placeholder" style="display:none">🧵</div>'
         : '<div class="sku-img-placeholder">🧵</div>';
 
